@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 from datetime import timedelta, datetime
 import isodate
 from imdb import findMedia
+from mongoDB import getCollection
 
 def getInstalments(title):
     def getInstalment(title, period):
@@ -31,8 +32,7 @@ def getInstalments(title):
     if 'SEASON' in title.upper():
         season = getInstalment(title, "SEASON")
     else:
-        season = 0
-    
+        season = 0   
 
     return season, episode
 
@@ -59,10 +59,14 @@ def parseURL(url):
 def raiseFlag(videoId):
     return None
 
-
 def getContentObj(videoSnippit, name, mediaType):
 
-    responseIMDB = findMedia(name)
+    collection = getCollection('pre')
+    result = collection.find_one({"name":name})
+    responseIMDB = None
+    if result is None:
+        responseIMDB = findMedia(name)
+
     response = {}
     if responseIMDB is not None:
         response = {
@@ -74,16 +78,14 @@ def getContentObj(videoSnippit, name, mediaType):
     else:
         response = {
             "name" : name,
-            "img" : videoSnippit['items'][0]['snippet']['thumbnails']['high']['url'],
+            "img" : videoSnippit['thumbnails']['high']['url'],
             "type" : mediaType
         }
     return response
 
 def getMediaType(videoId, title):
-
     url = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id={0}&key={1}".format(videoId, getAPIKey())
     data = parseURL(url)
-
     duration = isodate.parse_duration(data['items'][0]['contentDetails']['duration']).seconds
     if 'MOVIE' in title.upper() and duration > 60*60:
         return 'MOVIE'
@@ -91,7 +93,7 @@ def getMediaType(videoId, title):
         return 'EPISODE'
     return None
 
-def getAPIKey(): return "AIzaSyAGOmlQHZQibXpeoTRl3Sa7DBYWFBTGCAQ"
+def getAPIKey(): return "AIzaSyCAJLjXr8FHDCW0OxgC7mf4Lv2Bx1MDBBQ"
 
     
 #print(getInstalments("The Voice of Nepal Season 2 - 2019 - Episode 30 (LIVE Performance)"))
